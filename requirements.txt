@@ -1,0 +1,16 @@
+numpy==1.18.5 
+pandas==1.0.5 
+plotly==4.11.0
+openpyxl==3.0.4
+ipympl==0.5.7
+xlrd==1.2.0
+statsmodels==0.11.1
+xlsxwriter==1.2.9
+
+dash==1.17
+dash-bio==0.5
+dash-bio-utils==0.0.5
+dash-core-components==1.13
+dash-html-components
+
+-e git://github.com/fhidalgor/mutagenesis_visualization.git#egg= mutagenesis_visualization.git
