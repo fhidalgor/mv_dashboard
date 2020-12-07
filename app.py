@@ -327,6 +327,6 @@ def files_data_style(content):
 # In[ ]:
 
 
-pdb = '../../data/5p21.pdb'
+pdb = 'data/5p21.pdb'
 dashboard_3d_protein(hras_RBD, pdb)
 
