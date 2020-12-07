@@ -25,14 +25,10 @@ import pandas as pd
 
 try:
     import mutagenesis_visualization as mut
-    import mutagenesis_visualization.main.scripts.code_kwargs as code_kwargs
-    import mutagenesis_visualization.main.scripts.code_utils as code_utils
 except ModuleNotFoundError:  # This step is only for when I run the notebooks locally
     import sys
     sys.path.append('../../../')
     import mutagenesis_visualization as mut
-    import mutagenesis_visualization.main.scripts.code_kwargs as code_kwargs
-    import mutagenesis_visualization.main.scripts.code_utils as code_utils
 
 
 # In[5]:
@@ -52,7 +48,7 @@ def dashboard_3d_protein(self, pdb, chain='A', position_correction=0, **kwargs):
     '''
 
     # update kwargs
-    temp_kwargs = copy.deepcopy(code_kwargs.kwargs())
+    temp_kwargs = copy.deepcopy(mut.code_kwargs.kwargs())
     temp_kwargs.update(kwargs)
 
     # Load data from pdb file
@@ -73,7 +69,8 @@ def _run_dashboard_3d_protein(
 
     # Open app
     app = dash.Dash('__main__', external_stylesheets=[dbc.themes.BOOTSTRAP])
-
+    server = app.server
+    
     # App layout
     app.layout = html.Div([
         dbc.Row(
@@ -226,6 +223,12 @@ def _run_dashboard_3d_protein(
     # Run server
     app.run_server(port=8082, )
 
+
+# # Auxiliary functions
+
+# In[7]:
+
+
 def _parse_pdb(pdb):
     '''return the pdb in jason format'''
     # Parse pdb file
@@ -319,9 +322,11 @@ def files_data_style(content):
     return dataFile
 
 
+# # Run Dashboard
+
+# In[ ]:
+
+
 pdb = '../../data/5p21.pdb'
 dashboard_3d_protein(hras_RBD, pdb)
-
-
-
 

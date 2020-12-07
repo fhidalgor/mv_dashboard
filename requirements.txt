@@ -13,4 +13,4 @@ dash-bio-utils==0.0.5
 dash-core-components==1.13
 dash-html-components
 
--e git://github.com/fhidalgor/mutagenesis_visualization.git#egg= mutagenesis_visualization.git
+mutagenesis_visualization
