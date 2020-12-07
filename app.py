@@ -155,7 +155,8 @@ def _run_dashboard_3d_protein(
 
     # Open app
     app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
-
+    server = app.server
+    
     # App layout
     app.layout = html.Div([
         dbc.Row(
