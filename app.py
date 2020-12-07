@@ -24,6 +24,7 @@ import pandas as pd
 try:
     import mutagenesis_visualization as mut
     jupyterlab = False
+    hras_RBD=mut.hras_RBD()
     pdb = 'data/5p21.pdb'
 except ModuleNotFoundError:  # This step is only for when I run the notebooks locally
     import sys
@@ -31,30 +32,118 @@ except ModuleNotFoundError:  # This step is only for when I run the notebooks lo
     import mutagenesis_visualization as mut
     __name__ = '__main__'
     jupyterlab = True # for local use in jupyter lab
+    hras_RBD=mut.hras_RBD()
     pdb = '../../data/5p21.pdb'
+
+
+# # Auxiliary functions
+
+# In[ ]:
+
+
+def _parse_pdb(pdb):
+    '''return the pdb in jason format'''
+    # Parse pdb file
+    modata = parser.create_data(pdb)
+
+    # Put in jason format
+    fmodel = _files_data_style(modata)
+    with open(fmodel) as fm:
+        model_data = json.load(fm)
+
+    return model_data
+
+
+def _parse_styles_data(
+    self,
+    model_data,
+    df,
+    gof,
+    lof,
+    mode,
+    position_correction,
+    chain,
+):
+    '''
+    From a dataframe with enrichment scores, this function will return a jason file
+    with the color of each atom.
+    
+    Returns
+    -------
+    styles_data : jason file
+    '''
+
+    # Create empty dict
+    styles_data = {}
+
+    # Calculate df with colors
+    df_color = _add_color(
+        self.dataframe.copy(), gof, lof, mode, position_correction=0
+    )
+
+    # Iterate over parsed pdb
+    for item in model_data['atoms']:
+        #if item['chain'] != 'A':  # only color atoms from selected chain
+        #break
+        try:
+            style_atom = {
+                'color': _assign_color_jason(df_color, item['residue_index']),
+                'visualization_type': 'cartoon'
+            }
+            styles_data[str(item['serial'])] = style_atom
+        except IndexError:  # in case we runt out of index
+            pass
+    return styles_data
+
+
+def _assign_color_jason(df, residue):
+    '''
+    Give a color to the atom based on the enrichment score of that residue.
+    As an input takes the dataframe that _add_color returns.
+    '''
+    return df.loc[df['Position_Corrected'] == residue, 'Color'].iloc[0]
+
+
+def _add_color(df, gof, lof, mode, position_correction):
+    '''You input the dataframe. Removes stop codons. 
+    Returns the positions that are going to be colored blue,red and white'''
+
+    # Correct position
+    df['Position_Corrected'] = df['Position'] + position_correction
+
+    # Add dummy color column
+    red = '#FD3216'
+    blue = '#6A76FC'
+    green = '#16FF32'
+
+    # Select grouping
+    if mode == 'mean':
+        df_grouped = df.groupby(['Position'], as_index=False).mean()
+    else:
+        df_grouped = df.loc[df['Aminoacid'] == mode]
+
+    # Color of mutations
+    df_grouped['Color'] = green
+    df_grouped.loc[df_grouped['Score'] < lof, 'Color'] = blue
+    df_grouped.loc[df_grouped['Score'] > gof, 'Color'] = red
+
+    return df_grouped
+
+
+def _files_data_style(content):
+    '''
+    Function to create the modelData and style files for molecule visualization
+    '''
+    fdat = tempfile.NamedTemporaryFile(suffix=".js", delete=False, mode='w+')
+    fdat.write(content)
+    dataFile = fdat.name
+    fdat.close()
+    return dataFile
 
 
 # # Main dashboard function
 
 # In[ ]:
-
-
-def dashboard_3d_protein(self, pdb, chain='A', position_correction=0, **kwargs):
-    '''
-    Docstring
-    '''
-
-    # update kwargs
-    temp_kwargs = copy.deepcopy(mut.code_kwargs.kwargs())
-    temp_kwargs.update(kwargs)
-
-    # Load data from pdb file
-    model_data = _parse_pdb(pdb)
-
-    # Run dashhoard
-    _run_dashboard_3d_protein(
-        self, model_data, temp_kwargs, position_correction, pdb, chain
-    )
 
 
 def _run_dashboard_3d_protein(
@@ -227,112 +316,30 @@ def _run_dashboard_3d_protein(
         app.run_server(port=8083)        
     else:
         if __name__ == '__main__':
-            app.run_server(debug=True, port=8084)
+            app.run_server(debug=True)
 
 
-# # Auxiliary functions
+# # Function to call dashboard
 
 # In[ ]:
 
 
-def _parse_pdb(pdb):
-    '''return the pdb in jason format'''
-    # Parse pdb file
-    modata = parser.create_data(pdb)
-
-    # Put in jason format
-    fmodel = _files_data_style(modata)
-    with open(fmodel) as fm:
-        model_data = json.load(fm)
-
-    return model_data
-
-
-def _parse_styles_data(
-    self,
-    model_data,
-    df,
-    gof,
-    lof,
-    mode,
-    position_correction,
-    chain,
-):
+def dashboard_3d_protein(self, pdb, chain='A', position_correction=0, **kwargs):
     '''
-    From a dataframe with enrichment scores, this function will return a jason file
-    with the color of each atom.
-    
-    Returns
-    -------
-    styles_data : jason file
+    Docstring
     '''
 
-    # Create empty dict
-    styles_data = {}
+    # update kwargs
+    temp_kwargs = copy.deepcopy(mut.code_kwargs.kwargs())
+    temp_kwargs.update(kwargs)
 
-    # Calculate df with colors
-    df_color = _add_color(
-        self.dataframe.copy(), gof, lof, mode, position_correction=0
+    # Load data from pdb file
+    model_data = _parse_pdb(pdb)
+
+    # Run dashhoard
+    _run_dashboard_3d_protein(
+        self, model_data, temp_kwargs, position_correction, pdb, chain
     )
-
-    # Iterate over parsed pdb
-    for item in model_data['atoms']:
-        #if item['chain'] != 'A':  # only color atoms from selected chain
-        #break
-        try:
-            style_atom = {
-                'color': _assign_color_jason(df_color, item['residue_index']),
-                'visualization_type': 'cartoon'
-            }
-            styles_data[str(item['serial'])] = style_atom
-        except IndexError:  # in case we runt out of index
-            pass
-    return styles_data
-
-
-def _assign_color_jason(df, residue):
-    '''
-    Give a color to the atom based on the enrichment score of that residue.
-    As an input takes the dataframe that _add_color returns.
-    '''
-    return df.loc[df['Position_Corrected'] == residue, 'Color'].iloc[0]
-
-
-def _add_color(df, gof, lof, mode, position_correction):
-    '''You input the dataframe. Removes stop codons. 
-    Returns the positions that are going to be colored blue,red and white'''
-
-    # Correct position
-    df['Position_Corrected'] = df['Position'] + position_correction
-
-    # Add dummy color column
-    red = '#FD3216'
-    blue = '#6A76FC'
-    green = '#16FF32'
-
-    # Select grouping
-    if mode == 'mean':
-        df_grouped = df.groupby(['Position'], as_index=False).mean()
-    else:
-        df_grouped = df.loc[df['Aminoacid'] == mode]
-
-    # Color of mutations
-    df_grouped['Color'] = green
-    df_grouped.loc[df_grouped['Score'] < lof, 'Color'] = blue
-    df_grouped.loc[df_grouped['Score'] > gof, 'Color'] = red
-
-    return df_grouped
-
-
-def _files_data_style(content):
-    '''
-    Function to create the modelData and style files for molecule visualization
-    '''
-    fdat = tempfile.NamedTemporaryFile(suffix=".js", delete=False, mode='w+')
-    fdat.write(content)
-    dataFile = fdat.name
-    fdat.close()
-    return dataFile
 
 
 # # Run Dashboard
@@ -340,7 +347,6 @@ def _files_data_style(content):
 # In[ ]:
 
 
-hras_RBD=mut.hras_RBD()
 dashboard_3d_protein(hras_RBD, pdb)
 
 
