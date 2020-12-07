@@ -1,4 +1,4 @@
-gunicorn
+gunicorn==20.0.4.
 
 dash==1.17
 dash-bio==0.5
