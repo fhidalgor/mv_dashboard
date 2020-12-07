@@ -5,10 +5,8 @@
 
 # ## Import modules
 
-# In[4]:
+# In[ ]:
 
-
-import six.moves.urllib.request as urlreq
 
 import dash
 import dash_bio as dashbio
@@ -25,21 +23,20 @@ import pandas as pd
 
 try:
     import mutagenesis_visualization as mut
+    jupyterlab = False
+    pdb = 'data/5p21.pdb'
 except ModuleNotFoundError:  # This step is only for when I run the notebooks locally
     import sys
     sys.path.append('../../../')
     import mutagenesis_visualization as mut
-
-
-# In[5]:
-
-
-hras_RBD = mut.hras_RBD()
+    __name__ = '__main__'
+    jupyterlab = True # for local use in jupyter lab
+    pdb = '../../data/5p21.pdb'
 
 
 # # Main dashboard function
 
-# In[30]:
+# In[ ]:
 
 
 def dashboard_3d_protein(self, pdb, chain='A', position_correction=0, **kwargs):
@@ -68,9 +65,8 @@ def _run_dashboard_3d_protein(
     '''
 
     # Open app
-    app = dash.Dash('__main__', external_stylesheets=[dbc.themes.BOOTSTRAP])
-    server = app.server
-    
+    app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+
     # App layout
     app.layout = html.Div([
         dbc.Row(
@@ -167,8 +163,14 @@ def _run_dashboard_3d_protein(
         '''
         # Calculate styles based on enrichment scores for the 3d viewer
         styles_data = _parse_styles_data(
-            model_data, self.dataframe.copy(), temp_kwargs['gof'],
-            temp_kwargs['lof'], mode, position_correction, chain
+            self,
+            model_data,
+            self.dataframe.copy(),
+            0.1,
+            -0.3,
+            mode,
+            position_correction,
+            chain,
         )
 
         return [html.Div(dashbio.Molecule3dViewer( # 3d molecule
@@ -221,12 +223,16 @@ def _run_dashboard_3d_protein(
         return heatmap, mean, scatter_3d, histogram
 
     # Run server
-    app.run_server(port=8082, )
+    if jupyterlab:
+        app.run_server(port=8083)        
+    else:
+        if __name__ == '__main__':
+            app.run_server(debug=True, port=8084)
 
 
 # # Auxiliary functions
 
-# In[7]:
+# In[ ]:
 
 
 def _parse_pdb(pdb):
@@ -235,7 +241,7 @@ def _parse_pdb(pdb):
     modata = parser.create_data(pdb)
 
     # Put in jason format
-    fmodel = files_data_style(modata)
+    fmodel = _files_data_style(modata)
     with open(fmodel) as fm:
         model_data = json.load(fm)
 
@@ -243,7 +249,14 @@ def _parse_pdb(pdb):
 
 
 def _parse_styles_data(
-    model_data, df, gof, lof, mode, position_correction, chain
+    self,
+    model_data,
+    df,
+    gof,
+    lof,
+    mode,
+    position_correction,
+    chain,
 ):
     '''
     From a dataframe with enrichment scores, this function will return a jason file
@@ -259,7 +272,7 @@ def _parse_styles_data(
 
     # Calculate df with colors
     df_color = _add_color(
-        hras_RBD.dataframe.copy(), 0.1, -0.3, mode, position_correction=0
+        self.dataframe.copy(), gof, lof, mode, position_correction=0
     )
 
     # Iterate over parsed pdb
@@ -311,7 +324,7 @@ def _add_color(df, gof, lof, mode, position_correction):
     return df_grouped
 
 
-def files_data_style(content):
+def _files_data_style(content):
     '''
     Function to create the modelData and style files for molecule visualization
     '''
@@ -327,6 +340,12 @@ def files_data_style(content):
 # In[ ]:
 
 
-pdb = 'data/5p21.pdb'
+hras_RBD=mut.hras_RBD()
 dashboard_3d_protein(hras_RBD, pdb)
+
+
+# In[ ]:
+
+
+
 
