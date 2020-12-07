@@ -264,178 +264,180 @@ def parser(pdb_path):
 # In[ ]:
 
 
-def _run_dashboard_3d_protein(
-    self, model_data, temp_kwargs, position_correction, pdb, chain
-):
-    '''
-    Create dashboard for main function.
-    '''
+self = hras_RBD
+chain='A'
+position_correction=0
+# update kwargs
+temp_kwargs = copy.deepcopy(mut.code_kwargs.kwargs())
 
-    # Open app
-    app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
-    server = app.server
-    
-    # App layout
-    app.layout = html.Div([
-        dbc.Row(
-            dbc.Col(
-                html.H3("Site-saturation mutagenesis of H-Ras"),  # title
-                width={'size': 12},
+# Load data from pdb file
+model_data = _parse_pdb(pdb)
+
+# Open app
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+server = app.server
+
+# App layout
+app.layout = html.Div([
+    dbc.Row(
+        dbc.Col(
+            html.H3("Site-saturation mutagenesis of H-Ras"),  # title
+            width={'size': 12},
+        ),
+    ),
+    dbc.Row(
+        dbc.Col(
+            dcc.Graph(  # heatmap
+                id="heatmap",
+                figure={},
+                config={'displayModeBar': False},
+            ),
+            width=12,
+        )
+    ),
+    dbc.Row([
+        dbc.Col(
+            html.Div("Filter the data by:"),
+            width={'size': 4, 'offset': 3}
+        ),
+        dbc.Col(
+            dcc.Dropdown(
+                id='dropdown',
+                placeholder='choose amino acid',
+                clearable=False,
+                value='mean',
+                options=[
+                    {'label': 'Mean', 'value': 'mean'},
+                    {'label': 'Alanine', 'value': 'A'},
+                    {'label': 'Arginine', 'value': 'R'},
+                    {'label': 'Asparagine', 'value': 'N'},
+                    {'label': 'Aspartic acid ', 'value': 'D'},
+                    {'label': 'Cysteine', 'value': 'C'},
+                    {'label': 'Glutamine', 'value': 'Q'},
+                    {'label': 'Glutamic acid ', 'value': 'E'},
+                    {'label': 'Glycine', 'value': 'G'},
+                    {'label': 'Histidine', 'value': 'H'},
+                    {'label': 'Isoleucine', 'value': 'I'},
+                    {'label': 'Leucine', 'value': 'L'},
+                    {'label': 'Lysine', 'value': 'K'},
+                    {'label': 'Methionine', 'value': 'M'},
+                    {'label': 'Phenylalanine', 'value': 'F'},
+                    {'label': 'Proline', 'value': 'P'},
+                    {'label': 'Serine', 'value': 'S'},
+                    {'label': 'Threonine', 'value': 'T'},
+                    {'label': 'Tryptophan', 'value': 'W'},
+                    {'label': 'Tyrosine', 'value': 'Y'},
+                    {'label': 'Valine', 'value': 'V'},
+                    #{'label': 'Stop codon', 'value': '*'},
+                ]
+            ),
+            width=4,
+        ),
+    ]),
+    dbc.Row([
+        dbc.Col(
+            id='moleculeviewer',
+            children={},
+            width={"size": 5, 'order':1, "offset": -1},
+        ),
+        dbc.Col(
+            [dbc.Row(
+            dcc.Graph(
+                id="mean",
+                figure={},
+                config={'displayModeBar': False},
             ),
         ),
-        dbc.Row(
-            dbc.Col(
-                dcc.Graph(  # heatmap
-                    id="heatmap",
-                    figure={},
-                    config={'displayModeBar': False},
-                ),
-                width=12,
-            )
-        ),
-        dbc.Row([
-            dbc.Col(
-                html.Div("Filter the data by:"),
-                width={'size': 4, 'offset': 3}
-            ),
-            dbc.Col(
-                dcc.Dropdown(
-                    id='dropdown',
-                    placeholder='choose amino acid',
-                    clearable=False,
-                    value='mean',
-                    options=[
-                        {'label': 'Mean', 'value': 'mean'},
-                        {'label': 'Alanine', 'value': 'A'},
-                        {'label': 'Arginine', 'value': 'R'},
-                        {'label': 'Asparagine', 'value': 'N'},
-                        {'label': 'Aspartic acid ', 'value': 'D'},
-                        {'label': 'Cysteine', 'value': 'C'},
-                        {'label': 'Glutamine', 'value': 'Q'},
-                        {'label': 'Glutamic acid ', 'value': 'E'},
-                        {'label': 'Glycine', 'value': 'G'},
-                        {'label': 'Histidine', 'value': 'H'},
-                        {'label': 'Isoleucine', 'value': 'I'},
-                        {'label': 'Leucine', 'value': 'L'},
-                        {'label': 'Lysine', 'value': 'K'},
-                        {'label': 'Methionine', 'value': 'M'},
-                        {'label': 'Phenylalanine', 'value': 'F'},
-                        {'label': 'Proline', 'value': 'P'},
-                        {'label': 'Serine', 'value': 'S'},
-                        {'label': 'Threonine', 'value': 'T'},
-                        {'label': 'Tryptophan', 'value': 'W'},
-                        {'label': 'Tyrosine', 'value': 'Y'},
-                        {'label': 'Valine', 'value': 'V'},
-                        #{'label': 'Stop codon', 'value': '*'},
-                    ]
-                ),
-                width=4,
-            ),
-        ]),
-        dbc.Row([
-            dbc.Col(
-                id='moleculeviewer',
-                children={},
-                width={"size": 5, 'order':1, "offset": -1},
-            ),
-            dbc.Col(
-                [dbc.Row(
-                dcc.Graph(
-                    id="mean",
-                    figure={},
-                    config={'displayModeBar': False},
-                ),
-            ),
-                 dbc.Row([dbc.Col(
-                dcc.Graph(
-                    id="scatter_3d",
-                    figure={},
-                    config={'displayModeBar': False},
-                ),width={"size": 7, 'order':1},
-                 ),dbc.Col(
-                dcc.Graph(
-                    id="histogram",
-                    figure={},
-                    config={'displayModeBar': False},
-                ),width={"size": 5, 'order':2},
-                 )],no_gutters=True),],width={"size": 7, 'order':2},)
-        ],
-                no_gutters=True),
-    ])
+             dbc.Row([dbc.Col(
+            dcc.Graph(
+                id="scatter_3d",
+                figure={},
+                config={'displayModeBar': False},
+            ),width={"size": 7, 'order':1},
+             ),dbc.Col(
+            dcc.Graph(
+                id="histogram",
+                figure={},
+                config={'displayModeBar': False},
+            ),width={"size": 5, 'order':2},
+             )],no_gutters=True),],width={"size": 7, 'order':2},)
+    ],
+            no_gutters=True),
+])
 
-    @app.callback([Output('moleculeviewer', 'children')],
-                  [Input('dropdown', 'value')])
-    def update_molecule3d(mode):
-        '''
-        Call the dashbio.molecule3dviewer and updated the coloring based on user input.
-        '''
-        # Calculate styles based on enrichment scores for the 3d viewer
-        styles_data = _parse_styles_data(
-            self,
-            model_data,
-            self.dataframe.copy(),
-            0.1,
-            -0.3,
-            mode,
-            position_correction,
-            chain,
-        )
+@app.callback([Output('moleculeviewer', 'children')],
+              [Input('dropdown', 'value')])
+def update_molecule3d(mode):
+    '''
+    Call the dashbio.molecule3dviewer and updated the coloring based on user input.
+    '''
+    # Calculate styles based on enrichment scores for the 3d viewer
+    styles_data = _parse_styles_data(
+        self,
+        model_data,
+        self.dataframe.copy(),
+        0.1,
+        -0.3,
+        mode,
+        position_correction,
+        chain,
+    )
 
-        return [html.Div(dashbio.Molecule3dViewer( # 3d molecule
-                            modelData=model_data,
-                            styles=styles_data,
-                            selectionType='Chain',
-                        ))]
+    return [html.Div(dashbio.Molecule3dViewer( # 3d molecule
+                        modelData=model_data,
+                        styles=styles_data,
+                        selectionType='Chain',
+                    ))]
 
-    @app.callback([
-        Output('heatmap', 'figure'),
-        Output('mean', 'figure'),
-        Output('scatter_3d', 'figure'),
-        Output('histogram', 'figure'),
-    ], [
-        Input('dropdown', 'value'),
-    ])
-    def update_graphs(mode='mean'):
-        '''
-        Aux function to update the plotly figures based on the user input.
-        '''
+@app.callback([
+    Output('heatmap', 'figure'),
+    Output('mean', 'figure'),
+    Output('scatter_3d', 'figure'),
+    Output('histogram', 'figure'),
+], [
+    Input('dropdown', 'value'),
+])
+def update_graphs(mode='mean'):
+    '''
+    Aux function to update the plotly figures based on the user input.
+    '''
 
-        heatmap = self.heatmap_plotly(
-            return_plot_object=True,
-            show=False,
-            title='Heatmap',
-            figsize=(8, 2.5),
-        )
-        mean = self.mean_plotly(
-            mode=mode,
-            return_plot_object=True,
-            show=False,
-            figsize=(6, 2.5),
-        )
+    heatmap = self.heatmap_plotly(
+        return_plot_object=True,
+        show=False,
+        title='Heatmap',
+        figsize=(8, 2.5),
+    )
+    mean = self.mean_plotly(
+        mode=mode,
+        return_plot_object=True,
+        show=False,
+        figsize=(6, 2.5),
+    )
 
-        scatter_3d = self.scatter_3D_plotly(
-            mode=mode,
-            pdb_path=pdb,
-            return_plot_object=True,
-            show=False,
-            figsize=(3, 3),
-            title='C-α carbons',
-        )
+    scatter_3d = self.scatter_3D_plotly(
+        mode=mode,
+        pdb_path=pdb,
+        return_plot_object=True,
+        show=False,
+        figsize=(3, 3),
+        title='C-α carbons',
+    )
 
-        histogram = self.histogram_plotly(
-            mode=mode,
-            return_plot_object=True,
-            show=False,
-            figsize=(3, 3),
-        )
-        return heatmap, mean, scatter_3d, histogram
+    histogram = self.histogram_plotly(
+        mode=mode,
+        return_plot_object=True,
+        show=False,
+        figsize=(3, 3),
+    )
+    return heatmap, mean, scatter_3d, histogram
 
-    # Run server
-    if jupyterlab:
-        app.run_server(port=8083)        
-    else:
-        if __name__ == '__main__':
-            app.run_server(debug=True)
+# Run server
+if jupyterlab:
+    app.run_server(port=8083)        
+else:
+    if __name__ == '__main__':
+        app.run_server(debug=True)
 
 
 # # Function to call dashboard
@@ -443,22 +445,7 @@ def _run_dashboard_3d_protein(
 # In[ ]:
 
 
-def dashboard_3d_protein(self, pdb, chain='A', position_correction=0, **kwargs):
-    '''
-    Docstring
-    '''
 
-    # update kwargs
-    temp_kwargs = copy.deepcopy(mut.code_kwargs.kwargs())
-    temp_kwargs.update(kwargs)
-
-    # Load data from pdb file
-    model_data = _parse_pdb(pdb)
-
-    # Run dashhoard
-    _run_dashboard_3d_protein(
-        self, model_data, temp_kwargs, position_correction, pdb, chain
-    )
 
 
 # # Run Dashboard
@@ -466,7 +453,7 @@ def dashboard_3d_protein(self, pdb, chain='A', position_correction=0, **kwargs):
 # In[ ]:
 
 
-dashboard_3d_protein(hras_RBD, pdb)
+
 
 
 # In[ ]:
