@@ -23,22 +23,19 @@ from shutil import copy2
 
 import parmed as pmd
 
-
 import copy
 import pandas as pd
 
 try:
     import mutagenesis_visualization as mut
     jupyterlab = False
-    hras_RBD=mut.hras_RBD()
     pdb = 'data/5p21.pdb'
 except ModuleNotFoundError:  # This step is only for when I run the notebooks locally
     import sys
     sys.path.append('../../../')
     import mutagenesis_visualization as mut
     __name__ = '__main__'
-    jupyterlab = True # for local use in jupyter lab
-    hras_RBD=mut.hras_RBD()
+    jupyterlab = True  # for local use in jupyter lab
     pdb = '../../data/5p21.pdb'
 
 
@@ -188,10 +185,7 @@ def parser(pdb_path):
     atom_type = []
     ct = 0
 
-    datb = {
-        'atoms': [],
-        'bonds': []
-    }
+    datb = {'atoms': [], 'bonds': []}
 
     # Variables that store the character positions of different
     # parameters from the molecule PDB file
@@ -252,8 +246,7 @@ def parser(pdb_path):
         atom1 = re.findall(r"\[(\d+)\]", str(bondpair['atom1']))
         atom2 = re.findall(r"\[(\d+)\]", str(bondpair['atom2']))
         datb['bonds'].append({
-            'atom2_index': int(atom1[0]),
-            'atom1_index': int(atom2[0])
+            'atom2_index': int(atom1[0]), 'atom1_index': int(atom2[0])
         })
 
     return json.dumps(datb)
@@ -264,9 +257,11 @@ def parser(pdb_path):
 # In[ ]:
 
 
+hras_RBD = mut.hras_RBD()
 self = hras_RBD
-chain='A'
-position_correction=0
+chain = 'A'
+position_correction = 0
+
 # update kwargs
 temp_kwargs = copy.deepcopy(mut.code_kwargs.kwargs())
 
@@ -296,11 +291,24 @@ app.layout = html.Div([
         )
     ),
     dbc.Row([
-        dbc.Col(
-            html.Div("Filter the data by:"),
-            width={'size': 4, 'offset': 3}
+        dbc.Col([
+            html.Div("Select cutoffs"),
+            dcc.RangeSlider(
+                id='range_slider',
+                min=-1,
+                max=1,
+                step=0.01,
+                value=[-0.3,0.1],
+                marks={
+                    -1: {'label': '-1', 'style': {'color': '#6A76FC'}},
+                    0: {'label': '0'},
+                    1: {'label': '+1', 'style': {'color': '#FD3216'}},
+                },
+            )], 
+            width={'size': 3, 'offset': 1},
         ),
-        dbc.Col(
+        dbc.Col([
+            html.Div("Filter the data by:"),
             dcc.Dropdown(
                 id='dropdown',
                 placeholder='choose amino acid',
@@ -331,8 +339,8 @@ app.layout = html.Div([
                     #{'label': 'Stop codon', 'value': '*'},
                 ]
             ),
-            width=4,
-        ),
+            
+        ],width={'size': 3, 'offset': 3},),
     ]),
     dbc.Row([
         dbc.Col(
@@ -365,9 +373,12 @@ app.layout = html.Div([
             no_gutters=True),
 ])
 
-@app.callback([Output('moleculeviewer', 'children')],
-              [Input('dropdown', 'value')])
-def update_molecule3d(mode):
+
+@app.callback([Output('moleculeviewer', 'children')], [
+    Input('dropdown', 'value'),
+    Input('range_slider', 'value'),
+])
+def update_molecule3d(mode, range_slider):
     '''
     Call the dashbio.molecule3dviewer and updated the coloring based on user input.
     '''
@@ -376,8 +387,8 @@ def update_molecule3d(mode):
         self,
         model_data,
         self.dataframe.copy(),
-        0.1,
-        -0.3,
+        range_slider[1],
+        range_slider[0],
         mode,
         position_correction,
         chain,
@@ -388,6 +399,7 @@ def update_molecule3d(mode):
                         styles=styles_data,
                         selectionType='Chain',
                     ))]
+
 
 @app.callback([
     Output('heatmap', 'figure'),
@@ -432,28 +444,13 @@ def update_graphs(mode='mean'):
     )
     return heatmap, mean, scatter_3d, histogram
 
+
 # Run server
 if jupyterlab:
-    app.run_server(port=8083)        
+    app.run_server(port=8083)
 else:
     if __name__ == '__main__':
         app.run_server(debug=True)
-
-
-# # Function to call dashboard
-
-# In[ ]:
-
-
-
-
-
-# # Run Dashboard
-
-# In[ ]:
-
-
-
 
 
 # In[ ]:
